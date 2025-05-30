@@ -1,72 +1,57 @@
-const ExcelJS = require("exceljs");
+const puppeteer = require("puppeteer");
+const ejs = require("ejs");
+const path = require("path");
 const User = require("../models/user.model");
 
-exports.importUsers = async (req, res) => {
+exports.importUserListPdf = async (req, res) => {
   try {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(req.file.path);
-    const worksheet = workbook.worksheets[0];
+    // const userData = await User.find(
+    //   {},
+    //   { name: 1, email: 1, gender: 1, age: 1 }
+    // ).lean();
 
-    const data = [];
+    let userData = [];
+    for (let i = 0; i < 100; i++) {
+      userData.push({
+        name: `User ${i + 1}`,
+        email: `user${i + 1}@example.com`,
+        gender: i % 2 === 0 ? "male" : "female",
+        age: Math.floor(Math.random() * 50) + 20,
+      });
+    }
 
-    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-      if (rowNumber === 1) return;
-
-      const [name, email, gender, age] = row.values.slice(1);
-
-      data.push({ name, email, gender, age });
-    });
-
-    await User.insertMany(data);
-    return res.status(200).json({
-      status: true,
-      message: "Users imported successfully",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      status: false,
-      message: error.message,
-    });
-  }
-};
-
-exports.exportsUsers = async (req, res) => {
-  try {
-    const users = await User.find(
-      {},
-      { _id: 0, name: 1, email: 1, gender: 1, age: 1 }
-    ).lean();
-
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Users");
-
-    worksheet.columns = [
-      { header: "Name", key: "name", width: 30 },
-      { header: "Email", key: "email", width: 30 },
-      { header: "Gender", key: "gender", width: 30 },
-      { header: "Age", key: "age", width: 30 },
-    ];
-
-    worksheet.getRow(1).eachCell((cell) => {
-      cell.font = { bold: true, size: 16 };
-    });
-
-    users.forEach((user) => {
-      worksheet.addRow(user);
-    });
-
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    // Render HTML from EJS
+    const html = await ejs.renderFile(
+      path.join(__dirname, "../views", "user.ejs"),
+      { userData }
     );
-    res.setHeader("Content-Disposition", "attachment; filename=users.xlsx");
 
-    await workbook.xlsx.write(res);
-    res.end();
+    // Launch Puppeteer
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle0" });
+
+    // Generate PDF in memory
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+    });
+    await browser.close();
+
+    // Set headers and send PDF
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": 'attachment; filename="orders.pdf"',
+      "Content-Length": pdfBuffer.length,
+    });
+
+    res.send(pdfBuffer);
   } catch (error) {
+    console.log("🚀 ~ exports.importUserListPdf= ~ error:", error);
     return res.status(500).json({
       status: false,
-      message: error.message,
+      message:
+        error.message ||
+        "An error occurred while importing user list from PDF.",
     });
   }
 };

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF</title>
+
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 8px;
+        border: 1px solid #000;
+        text-align: left;
+      }
+      th {
+        font-weight: bold;
+      }
+      @page {
+        margin: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>This is PDF Import</h1>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Gender</th>
+          <th>Age</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% userData.forEach(user => { %>
+        <tr>
+          <td><%= user.name %></td>
+          <td>$<%= user.email %></td>
+          <td><%= user.gender %></td>
+          <td><%= user.age %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </body>
+</html>
